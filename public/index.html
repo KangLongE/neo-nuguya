@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#10131f">
+    <meta name="description" content="주제 하나만 고르고 가볍게 만나는 완전 익명 1:1 채팅">
+    <title>neo nuguya — 주제로 만나는 익명 채팅</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <main class="shell">
+      <section class="brand-panel" aria-labelledby="brand-title">
+        <a class="logo" href="/" aria-label="neo nuguya 홈">
+          <span class="logo-mark">n</span>
+          <span>neo nuguya</span>
+        </a>
+        <div class="brand-copy">
+          <p class="eyebrow">NO PROFILE. JUST A TOPIC.</p>
+          <h1 id="brand-title">누구인지 말고,<br><em>무슨 얘기인지.</em></h1>
+          <p>계정도, 프로필도, 다음 약속도 없이.<br>지금 떠오른 이야기 하나면 충분해요.</p>
+        </div>
+        <div class="principles" aria-label="서비스 원칙">
+          <span>01&nbsp; 완전 익명</span>
+          <span>02&nbsp; 텍스트만</span>
+          <span>03&nbsp; 흔적 없이</span>
+        </div>
+      </section>
+
+      <section class="app-card" aria-label="익명 채팅 앱">
+        <header class="app-header">
+          <span class="mini-logo">nn.</span>
+          <span id="connectionStatus" class="connection"><i></i> 연결 중</span>
+        </header>
+
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+
+        <section id="welcomeScreen" class="screen welcome-screen">
+          <p class="step">WELCOME, STRANGER</p>
+          <h2>아무것도<br>묻지 않을게요.</h2>
+          <p class="screen-copy">이름도 나이도 필요 없어요. 서로를 존중하는 세 가지만 약속하고 바로 시작해요.</p>
+          <ul class="rule-list">
+            <li><b>01</b><span>개인정보와 연락처는 나누지 않기</span></li>
+            <li><b>02</b><span>괴롭힘과 불쾌한 표현은 멈추기</span></li>
+            <li><b>03</b><span>불편하면 설명 없이 바로 나가기</span></li>
+          </ul>
+          <button id="startButton" class="primary-button" type="button">
+            규칙 확인하고 시작
+            <span aria-hidden="true">↗</span>
+          </button>
+          <p class="privacy-note"><span aria-hidden="true">●</span> 대화는 영구 저장하지 않아요</p>
+        </section>
+
+        <section id="topicScreen" class="screen" hidden>
+          <p class="step">STEP 01 / TOPIC</p>
+          <h2>오늘은 어떤<br>얘기가 끌려요?</h2>
+          <p class="screen-copy">하나를 고르면 같은 주제를 선택한 사람을 찾아드려요.</p>
+          <div class="topic-grid" aria-label="대화 주제">
+            <button type="button" data-topic="잡담"><span>💬</span>잡담</button>
+            <button type="button" data-topic="게임"><span>🕹️</span>게임</button>
+            <button type="button" data-topic="개발"><span>⌨️</span>개발</button>
+            <button type="button" data-topic="학교"><span>✏️</span>학교</button>
+            <button type="button" data-topic="고민"><span>☁️</span>고민</button>
+            <button type="button" data-topic="취미"><span>🧩</span>취미</button>
+            <button type="button" data-topic="음악"><span>🎧</span>음악</button>
+            <button type="button" data-topic="아무거나"><span>✦</span>아무거나</button>
+          </div>
+          <button id="backButton" class="text-button" type="button">← 안전수칙 다시 보기</button>
+        </section>
+
+        <section id="waitingScreen" class="screen waiting-screen" hidden>
+          <p class="step">STEP 02 / MATCHING</p>
+          <div class="radar" aria-hidden="true">
+            <span class="radar-dot dot-one"></span>
+            <span class="radar-dot dot-two"></span>
+            <span class="radar-core">?</span>
+          </div>
+          <h2>대화 상대를<br>찾고 있어요.</h2>
+          <p id="waitingCopy" class="screen-copy">같은 주제의 누군가가 들어오면 바로 연결할게요.</p>
+          <div class="waiting-topic"><small>선택한 주제</small><b id="waitingTopic">잡담</b></div>
+          <button id="cancelButton" class="secondary-button" type="button">매칭 취소</button>
+        </section>
+
+        <section id="chatScreen" class="screen chat-screen" hidden>
+          <div class="chat-toolbar">
+            <div>
+              <span class="online-dot"></span>
+              <b>낯선 사람</b>
+              <small id="chatTopic">잡담</small>
+            </div>
+            <div class="chat-actions">
+              <button id="reportButton" type="button">신고</button>
+              <button id="leaveButton" type="button">나가기</button>
+            </div>
+          </div>
+          <div id="partnerWarning" class="partner-warning" hidden></div>
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-label="대화 내용"></div>
+          <form id="messageForm" class="composer">
+            <label class="sr-only" for="messageInput">메시지</label>
+            <textarea id="messageInput" maxlength="250" rows="1" placeholder="메시지를 입력하세요" autocomplete="off"></textarea>
+            <span id="charCount" class="char-count">0 / 250</span>
+            <button id="sendButton" class="send-button" type="submit" aria-label="메시지 보내기" disabled>
+              <span class="send-icon" aria-hidden="true">↑</span>
+            </button>
+          </form>
+        </section>
+
+        <footer class="app-footer">
+          <span>24H TEMPORARY SAFETY</span>
+          <span>TEXT ONLY</span>
+        </footer>
+      </section>
+    </main>
+
+    <dialog id="reportDialog">
+      <form id="reportForm" method="dialog">
+        <button class="dialog-close" value="cancel" aria-label="닫기">×</button>
+        <p class="step">REPORT</p>
+        <h2>어떤 점이<br>불편했나요?</h2>
+        <p>신고하면 대화가 바로 종료돼요.</p>
+        <fieldset>
+          <legend class="sr-only">신고 사유</legend>
+          <label><input type="radio" name="reason" value="부적절한 대화" required><span>부적절한 대화</span></label>
+          <label><input type="radio" name="reason" value="개인정보 요구"><span>개인정보 요구</span></label>
+          <label><input type="radio" name="reason" value="괴롭힘"><span>괴롭힘</span></label>
+          <label><input type="radio" name="reason" value="스팸"><span>스팸</span></label>
+          <label><input type="radio" name="reason" value="기타"><span>기타</span></label>
+        </fieldset>
+        <button class="report-submit" value="confirm" type="submit">신고하고 대화 종료</button>
+      </form>
+    </dialog>
+  </body>
+</html>
