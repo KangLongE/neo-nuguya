@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>neo nuguya - 주제 기반 완전 익명 1:1 랜덤 텍스트 채팅</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      height: 100%;
+      background-color: #EAEAE5;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      color: #111111;
+      display: flex;
+      justify-content: center;
+    }
+    #app-root {
+      width: 100%;
+      max-width: 1240px;
+      height: 100%;
+      background-color: #F5F5F2;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 521px) {
+      body {
+        padding: 16px 0;
+      }
+      #app-root {
+        height: calc(100vh - 32px);
+        border: 1px solid #D8D8D2;
+      }
+    }
+    header {
+      height: 58px;
+      min-height: 58px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #D8D8D2;
+      background-color: #F5F5F2;
+      z-index: 10;
+    }
+    .brand {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .connection-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .connection-mark {
+      width: 8px;
+      height: 8px;
+      background-color: #A1A19B;
+      border-radius: 1px;
+    }
+    .connection-mark.connected {
+      background-color: #111111;
+    }
+    .connection-text {
+      color: #666660;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .notice {
+      margin: 12px 18px 0;
+      padding: 12px;
+      background-color: #E3E3DE;
+      border: 1px solid #C8C8C2;
+      font-size: 13px;
+      color: #111111;
+    }
+    .screen {
+      flex: 1;
+      padding: 36px 24px 24px;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    .screen.active {
+      display: flex;
+    }
+    .label {
+      color: #666660;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-size: 38px;
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      white-space: pre-line;
+    }
+    .description {
+      color: #666660;
+      font-size: 15px;
+      line-height: 1.53;
+      margin-top: 16px;
+      margin-bottom: 28px;
+    }
+    .rule-box {
+      border: 1px solid #C8C8C2;
+      background-color: #FFFFFF;
+    }
+    .rule-row {
+      min-height: 54px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #D8D8D2;
+    }
+    .rule-row:last-child {
+      border-bottom: none;
+    }
+    .rule-number {
+      width: 34px;
+      color: #777771;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .rule-text {
+      flex: 1;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .spacer {
+      flex: 1;
+      min-height: 20px;
+    }
+    .primary-btn {
+      min-height: 56px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #111111;
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      text-decoration: none;
+    }
+    .primary-btn:hover {
+      background-color: #222220;
+    }
+    .primary-btn:active {
+      background-color: #333330;
+    }
+    .primary-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .footnote {
+      color: #777771;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 14px;
+    }
+    .topic-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .topic-btn {
+      min-height: 66px;
+      padding: 0 15px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #FFFFFF;
+      border: 1px solid #C8C8C2;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      color: #111111;
+    }
+    .topic-btn:hover {
+      background-color: #F0F0EB;
+    }
+    .topic-btn:active {
+      background-color: #E3E3DE;
+      border-color: #111111;
+    }
+    .topic-arrow {
+      color: #666660;
+      font-size: 18px;
+      font-weight: normal;
+    }
+    .link-btn {
+      align-self: center;
+      margin-top: 20px;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: #666660;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+    .centered-screen {
+      align-items: center;
+      text-align: center;
+      padding-top: 72px;
+    }
+    .waiting-mark {
+      width: 92px;
+      height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #FFFFFF;
+      border: 2px solid #111111;
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 32px;
+    }
+    .selected-topic-card {
+      width: 100%;
+      padding: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: #E3E3DE;
+      border: 1px solid #C8C8C2;
+      margin-top: 10px;
+      text-align: left;
+    }
+    .selected-topic-label {
+      color: #666660;
+      font-size: 12px;
+    }
+    .selected-topic-text {
+      color: #111111;
+      font-size: 15px;
+      font-weight: 800;
+    }
+    .secondary-btn {
+      width: 100%;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #FFFFFF;
+      border: 1px solid #111111;
+      color: #111111;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .secondary-btn:hover {
+      background-color: #F0F0EB;
+    }
+    .secondary-btn:active {
+      background-color: #E3E3DE;
+    }
+    .chat-layout {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .chat-layout.active {
+      display: flex;
+    }
+    .chat-header {
+      min-height: 66px;
+      padding: 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #D8D8D2;
+      background-color: #F5F5F2;
+    }
+    .chat-partner {
+      font-size: 15px;
+      font-weight: 800;
+    }
+    .chat-topic {
+      font-size: 11px;
+      color: #666660;
+      margin-top: 2px;
+    }
+    .chat-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .small-btn {
+      padding: 9px 11px;
+      border: 1px solid #C8C8C2;
+      background-color: transparent;
+      color: #333330;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .small-btn:hover {
+      background-color: #EAEAE5;
+    }
+    .warning-banner {
+      margin: 10px 14px 0;
+      padding: 10px;
+      background-color: #E3E3DE;
+      border: 1px solid #C8C8C2;
+      font-size: 12px;
+      color: #111111;
+    }
+    .message-list {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .msg {
+      max-width: 72%;
+      padding: 11px 14px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .msg.partner {
+      align-self: flex-start;
+      background-color: #E3E3DE;
+      border: 1px solid #D0D0CA;
+      color: #111111;
+    }
+    .msg.own {
+      align-self: flex-end;
+      background-color: #111111;
+      border: 1px solid #111111;
+      color: #FFFFFF;
+    }
+    .msg.system {
+      align-self: center;
+      background-color: transparent;
+      border: none;
+      color: #777771;
+      font-size: 11px;
+      text-align: center;
+      padding: 4px 10px;
+    }
+    .composer {
+      margin: 12px;
+      padding: 12px;
+      background-color: #FFFFFF;
+      border: 1px solid #C8C8C2;
+      display: flex;
+      flex-direction: column;
+    }
+    .composer textarea {
+      min-height: 48px;
+      max-height: 110px;
+      resize: none;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 15px;
+      color: #111111;
+      background: transparent;
+      line-height: 1.4;
+    }
+    .composer textarea::placeholder {
+      color: #8B8B86;
+    }
+    .composer-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+    .counter {
+      color: #777771;
+      font-size: 11px;
+    }
+    .send-btn {
+      min-width: 76px;
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #111111;
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+      border-radius: 1px;
+    }
+    .send-btn .send-text {
+      position: relative;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .send-btn:disabled:not(.cooling-down) {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .send-btn.cooling-down {
+      cursor: not-allowed;
+      opacity: 1 !important;
+    }
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.45);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-sheet {
+      width: 100%;
+      max-width: 520px;
+      padding: 24px 24px 32px;
+      background-color: #F5F5F2;
+      border: 1px solid #111111;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #555550;
+      font-size: 13px;
+      text-decoration: underline;
+      padding: 8px;
+      cursor: pointer;
+    }
+    .modal-desc {
+      color: #666660;
+      font-size: 13px;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+    .reason-btn {
+      width: 100%;
+      min-height: 48px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      border: 1px solid #C8C8C2;
+      background-color: transparent;
+      color: #111111;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .reason-btn.selected {
+      background-color: #111111;
+      border-color: #111111;
+      color: #FFFFFF;
+    }
+    .screen-intro,
+    .screen-panel {
+      display: flex;
+      flex-direction: column;
+    }
+    .screen-panel {
+      flex: 1;
+    }
+    .chat-help {
+      display: none;
+    }
+    .waiting-intro {
+      align-items: center;
+      text-align: center;
+      padding-top: 28px;
+    }
+    @media (min-width: 960px) {
+      body {
+        padding: 24px;
+        align-items: center;
+      }
+      #app-root {
+        height: min(860px, calc(100vh - 48px));
+        border: 1px solid #C8C8C2;
+      }
+      header {
+        height: 72px;
+        min-height: 72px;
+        padding: 0 32px;
+      }
+      .brand {
+        font-size: 18px;
+      }
+      .screen.active {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.85fr) minmax(420px, 1.15fr);
+        gap: 48px;
+        align-items: center;
+        padding: 48px;
+        overflow: hidden;
+      }
+      .screen-intro {
+        justify-content: center;
+      }
+      .screen-panel {
+        min-height: 420px;
+        justify-content: center;
+        padding: 32px;
+        background-color: #FFFFFF;
+        border: 1px solid #C8C8C2;
+      }
+      .title {
+        font-size: 48px;
+        line-height: 1.12;
+        letter-spacing: -2.4px;
+      }
+      .description {
+        max-width: 420px;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+      .rule-row {
+        min-height: 66px;
+        padding: 0 18px;
+      }
+      .rule-number {
+        width: 44px;
+      }
+      .rule-text {
+        font-size: 15px;
+      }
+      .topic-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .topic-btn {
+        min-height: 78px;
+        padding: 0 20px;
+        font-size: 16px;
+      }
+      .waiting-intro {
+        align-items: flex-start;
+        text-align: left;
+        padding-top: 0;
+      }
+      .waiting-mark {
+        width: 76px;
+        height: 76px;
+        margin-bottom: 28px;
+        font-size: 30px;
+      }
+      .selected-topic-card {
+        min-height: 88px;
+        padding: 24px;
+        margin-top: 0;
+      }
+      .chat-layout.active {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+      }
+      .chat-header {
+        grid-column: 1;
+        grid-row: 1 / 4;
+        min-height: 0;
+        padding: 32px;
+        flex-direction: column;
+        align-items: stretch;
+        border-right: 1px solid #D8D8D2;
+        border-bottom: 0;
+      }
+      .chat-partner {
+        font-size: 24px;
+      }
+      .chat-topic {
+        margin-top: 8px;
+        font-size: 13px;
+      }
+      .chat-help {
+        display: block;
+        margin-top: 28px;
+        color: #666660;
+        font-size: 13px;
+        line-height: 1.7;
+      }
+      .chat-actions {
+        flex-direction: column;
+      }
+      .small-btn {
+        min-height: 44px;
+        width: 100%;
+      }
+      .warning-banner {
+        grid-column: 2;
+        grid-row: 1;
+        margin: 16px 24px 0;
+      }
+      .message-list {
+        grid-column: 2;
+        grid-row: 2;
+        padding: 28px 36px;
+      }
+      .msg {
+        max-width: 62%;
+        padding: 12px 16px;
+      }
+      .composer {
+        grid-column: 2;
+        grid-row: 3;
+        margin: 0 24px 24px;
+        padding: 16px;
+      }
+      .composer textarea {
+        min-height: 64px;
+      }
+      .modal-backdrop {
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app-root">
+    <header>
+      <div class="brand">neo nuguya</div>
+      <div class="connection-row">
+        <div id="conn-mark" class="connection-mark"></div>
+        <div id="conn-text" class="connection-text">연결 중</div>
+      </div>
+    </header>
+
+    <div id="notice-box" class="notice" style="display: none;"></div>
+
+    <!-- Screen 1: Rules -->
+    <div id="screen-rules" class="screen active">
+      <div class="screen-intro">
+        <div class="label">처음 오셨나요?</div>
+        <h1 class="title">누구인지 말고,&#10;무슨 얘기인지.</h1>
+        <p class="description">이름도 프로필도 필요 없어요. 서로를 존중하는 세 가지만 확인해 주세요.</p>
+      </div>
+      <div class="screen-panel">
+        <div class="rule-box">
+          <div class="rule-row">
+            <span class="rule-number">01</span>
+            <span class="rule-text">개인정보와 연락처는 나누지 않기</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-number">02</span>
+            <span class="rule-text">괴롭힘과 불쾌한 표현은 멈추기</span>
+          </div>
+          <div class="rule-row">
+            <span class="rule-number">03</span>
+            <span class="rule-text">불편하면 설명 없이 바로 나가기</span>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="primary-btn" id="btn-start">확인하고 시작하기</button>
+        <div class="footnote">대화는 영구 저장하지 않아요.</div>
+      </div>
+    </div>
+
+    <!-- Screen 2: Topics -->
+    <div id="screen-topics" class="screen">
+      <div class="screen-intro">
+        <div class="label">대화 주제</div>
+        <h1 class="title">어떤 이야기가&#10;끌리나요?</h1>
+        <p class="description">하나를 고르면 같은 주제를 선택한 사람을 찾아드려요.</p>
+      </div>
+      <div class="screen-panel">
+        <div class="topic-grid" id="topic-grid">
+          <!-- Topic buttons injected by JS -->
+        </div>
+        <button class="link-btn" id="btn-view-rules">안전수칙 다시 보기</button>
+      </div>
+    </div>
+
+    <!-- Screen 3: Waiting -->
+    <div id="screen-waiting" class="screen">
+      <div class="screen-intro waiting-intro">
+        <div class="waiting-mark">?</div>
+        <h1 class="title">대화 상대를&#10;찾고 있어요.</h1>
+        <p class="description">같은 주제의 누군가가 들어오면 바로 연결할게요.</p>
+      </div>
+      <div class="screen-panel">
+        <div class="selected-topic-card">
+          <span class="selected-topic-label">선택한 주제</span>
+          <span class="selected-topic-text" id="waiting-topic-name"></span>
+        </div>
+        <div class="spacer"></div>
+        <button class="secondary-btn" id="btn-cancel-waiting">매칭 취소</button>
+      </div>
+    </div>
+
+    <!-- Screen 4: Chat -->
+    <div id="screen-chat" class="chat-layout">
+      <div class="chat-header">
+        <div>
+          <div class="chat-partner">낯선 사람</div>
+          <div class="chat-topic" id="chat-topic-name"></div>
+          <p class="chat-help">개인정보는 공유하지 마세요.<br>불편한 대화는 바로 신고하거나 나갈 수 있어요.</p>
+        </div>
+        <div class="chat-actions">
+          <button class="small-btn" id="btn-open-report">신고</button>
+          <button class="small-btn" id="btn-leave-chat">나가기</button>
+        </div>
+      </div>
+      <div id="warning-banner" class="warning-banner" style="display: none;"></div>
+      <div class="message-list" id="message-list"></div>
+      <div class="composer">
+        <textarea id="chat-input" placeholder="메시지를 입력하세요" maxlength="250"></textarea>
+        <div class="composer-bottom">
+          <div class="counter" id="char-counter">0 / 250</div>
+          <button class="send-btn" id="btn-send" disabled><span class="send-text">전송</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Report -->
+    <div id="modal-report" class="modal-backdrop">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h2 class="modal-title">신고 사유</h2>
+          <button class="modal-close" id="btn-close-report">닫기</button>
+        </div>
+        <div class="modal-desc">신고하면 대화가 바로 종료돼요.</div>
+        <div id="report-reasons-list"></div>
+        <button class="primary-btn" id="btn-submit-report" style="margin-top: 14px;" disabled>신고하고 대화 종료</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOPICS = ['잡담', '게임', '개발', '학교', '고민', '취미', '음악', '아무거나'];
+    const REPORT_REASONS = ['부적절한 대화', '개인정보 요구', '괴롭힘', '스팸', '기타'];
+
+    const origin = window.location.origin;
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const SERVER_URL = window.location.port === '3000' || window.location.port === ''
+      ? origin
+      : `${protocol}//${window.location.hostname}:3000`;
+    const SOCKET_URL = SERVER_URL.replace(/^http/, 'ws');
+
+    let socket = null;
+    let token = null;
+    let reconnectTimer = null;
+    let noticeTimer = null;
+    let cooldownTimer = null;
+    let coolingDown = false;
+    let currentTopic = null;
+    let selectedReason = '';
+
+    const connMark = document.getElementById('conn-mark');
+    const connText = document.getElementById('conn-text');
+    const noticeBox = document.getElementById('notice-box');
+    const screenRules = document.getElementById('screen-rules');
+    const screenTopics = document.getElementById('screen-topics');
+    const screenWaiting = document.getElementById('screen-waiting');
+    const screenChat = document.getElementById('screen-chat');
+    const waitingTopicName = document.getElementById('waiting-topic-name');
+    const chatTopicName = document.getElementById('chat-topic-name');
+    const warningBanner = document.getElementById('warning-banner');
+    const messageList = document.getElementById('message-list');
+    const chatInput = document.getElementById('chat-input');
+    const charCounter = document.getElementById('char-counter');
+    const btnSend = document.getElementById('btn-send');
+    const modalReport = document.getElementById('modal-report');
+    const reportReasonsList = document.getElementById('report-reasons-list');
+    const btnSubmitReport = document.getElementById('btn-submit-report');
+
+    function setConnectionStatus(status) {
+      connText.textContent = status;
+      if (status === '연결됨') {
+        connMark.classList.add('connected');
+      } else {
+        connMark.classList.remove('connected');
+      }
+      updateSendButton();
+    }
+
+    function showNotice(text) {
+      noticeBox.textContent = text;
+      noticeBox.style.display = 'block';
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => {
+        noticeBox.style.display = 'none';
+      }, 3000);
+    }
+
+    function startCooldown(duration = 1500) {
+      coolingDown = true;
+      btnSend.classList.add('cooling-down');
+      updateSendButton();
+      clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => {
+        coolingDown = false;
+        btnSend.classList.remove('cooling-down');
+        updateSendButton();
+      }, duration);
+    }
+
+    function setScreen(screenName) {
+      screenRules.classList.remove('active');
+      screenTopics.classList.remove('active');
+      screenWaiting.classList.remove('active');
+      screenChat.classList.remove('active');
+
+      if (screenName === 'rules') screenRules.classList.add('active');
+      else if (screenName === 'topics') screenTopics.classList.add('active');
+      else if (screenName === 'waiting') screenWaiting.classList.add('active');
+      else if (screenName === 'chat') screenChat.classList.add('active');
+    }
+
+    async function fetchSession() {
+      try {
+        const res = await fetch(`${SERVER_URL}/session`, { method: 'POST' });
+        if (!res.ok) throw new Error('Session fetch failed');
+        const data = await res.json();
+        return data.token;
+      } catch (err) {
+        return null;
+      }
+    }
+
+    async function connectSocket() {
+      setConnectionStatus('연결 중');
+      if (!token) {
+        token = await fetchSession();
+        if (!token) {
+          setConnectionStatus('연결 끊김');
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connectSocket, 1500);
+          return;
+        }
+      }
+
+      try {
+        socket = new WebSocket(`${SOCKET_URL}/socket?token=${encodeURIComponent(token)}`);
+
+        socket.onopen = () => {
+          setConnectionStatus('연결됨');
+        };
+
+        socket.onmessage = (event) => {
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch {
+            return;
+          }
+
+          if (data.type === 'waiting') {
+            currentTopic = data.topic;
+            waitingTopicName.textContent = data.topic;
+            setScreen('waiting');
+          } else if (data.type === 'matched') {
+            currentTopic = data.topic;
+            chatTopicName.textContent = data.topic;
+            if (data.partnerStatus && data.partnerStatus !== '정상') {
+              warningBanner.textContent = data.partnerStatus === '제한'
+                ? '최근 여러 차례 채팅 규칙을 위반한 사용자예요.'
+                : '최근 채팅에서 주의를 받은 사용자예요.';
+              warningBanner.style.display = 'block';
+            } else {
+              warningBanner.style.display = 'none';
+            }
+            messageList.innerHTML = '';
+            appendMessage('연결됐어요. 가볍게 인사해 보세요.', 'system');
+            setScreen('chat');
+            chatInput.focus();
+          } else if (data.type === 'message') {
+            appendMessage(data.text, data.own ? 'own' : 'partner');
+            if (data.own) startCooldown();
+          } else if (data.type === 'error') {
+            showNotice(data.message);
+            if (data.retryAfter) startCooldown(data.retryAfter);
+          } else if (data.type === 'ended' || data.type === 'reported') {
+            setScreen('topics');
+            messageList.innerHTML = '';
+            showNotice(data.message);
+          }
+        };
+
+        socket.onclose = (e) => {
+          if (e.code === 1008) token = null;
+          setConnectionStatus('연결 끊김');
+          if (screenWaiting.classList.contains('active') || screenChat.classList.contains('active')) {
+            showNotice('연결이 끊겼어요. 주제를 다시 선택해 주세요.');
+            setScreen('topics');
+          }
+          clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(connectSocket, 1500);
+        };
+
+        socket.onerror = () => {
+          socket.close();
+        };
+      } catch {
+        setConnectionStatus('연결 끊김');
+        clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(connectSocket, 1500);
+      }
+    }
+
+    function emit(payload) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        showNotice('서버에 다시 연결하고 있어요.');
+        return false;
+      }
+      socket.send(JSON.stringify(payload));
+      return true;
+    }
+
+    function appendMessage(text, kind) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${kind}`;
+      msgDiv.textContent = text;
+      messageList.appendChild(msgDiv);
+      messageList.scrollTop = messageList.scrollHeight;
+    }
+
+    function updateSendButton() {
+      const text = chatInput.value.trim();
+      const connected = socket && socket.readyState === WebSocket.OPEN;
+      btnSend.disabled = !text || coolingDown || !connected;
+    }
+
+    function sendMessage() {
+      const text = chatInput.value.trim();
+      if (!text || coolingDown || !emit({ type: 'message', text })) return;
+      chatInput.value = '';
+      charCounter.textContent = '0 / 250';
+      updateSendButton();
+    }
+
+    // Initialize Topic Buttons
+    const topicGrid = document.getElementById('topic-grid');
+    TOPICS.forEach((topic) => {
+      const btn = document.createElement('button');
+      btn.className = 'topic-btn';
+      btn.innerHTML = `<span>${topic}</span><span class="topic-arrow">→</span>`;
+      btn.addEventListener('click', () => {
+        if (!emit({ type: 'queue', topic })) return;
+        currentTopic = topic;
+        waitingTopicName.textContent = topic;
+        setScreen('waiting');
+      });
+      topicGrid.appendChild(btn);
+    });
+
+    // Initialize Report Reasons
+    REPORT_REASONS.forEach((reason) => {
+      const btn = document.createElement('button');
+      btn.className = 'reason-btn';
+      btn.textContent = reason;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedReason = reason;
+        btnSubmitReport.disabled = false;
+      });
+      reportReasonsList.appendChild(btn);
+    });
+
+    // Event Listeners
+    document.getElementById('btn-start').addEventListener('click', () => setScreen('topics'));
+    document.getElementById('btn-view-rules').addEventListener('click', () => setScreen('rules'));
+    document.getElementById('btn-cancel-waiting').addEventListener('click', () => {
+      emit({ type: 'leave' });
+      setScreen('topics');
+    });
+    document.getElementById('btn-leave-chat').addEventListener('click', () => {
+      emit({ type: 'leave' });
+      messageList.innerHTML = '';
+      setScreen('topics');
+    });
+
+    chatInput.addEventListener('input', () => {
+      const len = [...chatInput.value].length;
+      charCounter.textContent = `${len} / 250`;
+      updateSendButton();
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    btnSend.addEventListener('click', sendMessage);
+
+    document.getElementById('btn-open-report').addEventListener('click', () => {
+      selectedReason = '';
+      document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
+      btnSubmitReport.disabled = true;
+      modalReport.classList.add('active');
+    });
+
+    document.getElementById('btn-close-report').addEventListener('click', () => {
+      modalReport.classList.remove('active');
+    });
+
+    btnSubmitReport.addEventListener('click', () => {
+      if (!selectedReason) return;
+      emit({ type: 'report', reason: selectedReason });
+      modalReport.classList.remove('active');
+    });
+
+    // Start connection
+    connectSocket();
+  </script>
+</body>
+</html>

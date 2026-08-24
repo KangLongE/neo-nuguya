@@ -16,7 +16,11 @@ import {
 const TOPICS = ['잡담', '게임', '개발', '학교', '고민', '취미', '음악', '아무거나'];
 const REPORT_REASONS = ['부적절한 대화', '개인정보 요구', '괴롭힘', '스팸', '기타'];
 const SERVER_URL = (process.env.EXPO_PUBLIC_SERVER_URL
-  || (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000'))
+  || (Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000'
+    : (typeof window !== 'undefined' && window.location && window.location.hostname
+        ? `${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname}:3000`
+        : 'http://localhost:3000')))
   .replace(/\/$/, '');
 const SOCKET_URL = SERVER_URL.replace(/^http/, 'ws');
 
@@ -25,6 +29,7 @@ export default function App() {
   const reconnectRef = useRef(null);
   const noticeRef = useRef(null);
   const cooldownRef = useRef(null);
+  const cooldownRaf = useRef(null);
   const listRef = useRef(null);
   const messageId = useRef(0);
   const [screen, setScreen] = useState('rules');
@@ -34,6 +39,7 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [coolingDown, setCoolingDown] = useState(false);
+  const [cooldownAngle, setCooldownAngle] = useState(0);
   const [notice, setNotice] = useState('');
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -46,8 +52,33 @@ export default function App() {
 
   const startCooldown = useCallback((duration = 1_500) => {
     setCoolingDown(true);
+    setCooldownAngle(0);
     clearTimeout(cooldownRef.current);
-    cooldownRef.current = setTimeout(() => setCoolingDown(false), duration);
+    if (cooldownRaf.current && typeof cancelAnimationFrame !== 'undefined') {
+      cancelAnimationFrame(cooldownRaf.current);
+    }
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      setCooldownAngle(progress * 360);
+      if (progress < 1) {
+        if (typeof requestAnimationFrame !== 'undefined') {
+          cooldownRaf.current = requestAnimationFrame(tick);
+        }
+      } else {
+        setCoolingDown(false);
+        setCooldownAngle(0);
+      }
+    };
+    if (typeof requestAnimationFrame !== 'undefined') {
+      cooldownRaf.current = requestAnimationFrame(tick);
+    } else {
+      cooldownRef.current = setTimeout(() => {
+        setCoolingDown(false);
+        setCooldownAngle(0);
+      }, duration);
+    }
   }, []);
 
   useEffect(() => {
@@ -125,6 +156,9 @@ export default function App() {
       clearTimeout(reconnectRef.current);
       clearTimeout(noticeRef.current);
       clearTimeout(cooldownRef.current);
+      if (cooldownRaf.current && typeof cancelAnimationFrame !== 'undefined') {
+        cancelAnimationFrame(cooldownRaf.current);
+      }
       socketRef.current?.close();
     };
   }, [showNotice, startCooldown]);
@@ -302,6 +336,12 @@ export default function App() {
                 placeholderTextColor="#8B8B86"
                 maxLength={250}
                 multiline
+                onKeyPress={(e) => {
+                  if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                    e.preventDefault?.();
+                    sendMessage();
+                  }
+                }}
               />
               <View style={styles.composerBottom}>
                 <Text style={styles.counter}>{[...draft].length} / 250</Text>
@@ -310,9 +350,18 @@ export default function App() {
                   accessibilityLabel="메시지 보내기"
                   disabled={!draft.trim() || coolingDown || !connected}
                   onPress={sendMessage}
-                  style={[styles.sendButton, (!draft.trim() || coolingDown || !connected) && styles.disabledButton]}
+                  style={[
+                    styles.sendButton,
+                    (!draft.trim() || !connected) && !coolingDown && styles.disabledButton,
+                    coolingDown && (Platform.OS === 'web'
+                      ? {
+                          backgroundImage: `conic-gradient(from 0deg at 50% 50%, #111111 0deg ${cooldownAngle}deg, #777771 ${cooldownAngle}deg 360deg)`,
+                          opacity: 1,
+                        }
+                      : { opacity: 0.8 }),
+                  ]}
                 >
-                  <Text style={styles.sendButtonText}>{coolingDown ? '잠시' : '전송'}</Text>
+                  <Text style={styles.sendButtonText}>전송</Text>
                 </Pressable>
               </View>
             </View>
@@ -357,8 +406,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#F5F5F2' },
-  app: { flex: 1, backgroundColor: '#F5F5F2' },
+  safeArea: { flex: 1, backgroundColor: Platform.OS === 'web' ? '#EAEAE5' : '#F5F5F2', alignItems: 'center' },
+  app: { flex: 1, width: '100%', maxWidth: 840, backgroundColor: '#F5F5F2' },
   androidTop: { paddingTop: StatusBar.currentHeight || 24 },
   header: {
     height: 58,
@@ -413,7 +462,7 @@ const styles = StyleSheet.create({
   footnote: { color: '#777771', fontSize: 11, textAlign: 'center', marginTop: 14 },
   topicGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   topicButton: {
-    width: '48.5%',
+    width: Platform.OS === 'web' ? '23.8%' : '48.5%',
     minHeight: 66,
     paddingHorizontal: 15,
     flexDirection: 'row',
@@ -490,7 +539,7 @@ const styles = StyleSheet.create({
   },
   messageList: { flexGrow: 1, justifyContent: 'flex-end', padding: 16, gap: 8 },
   message: {
-    maxWidth: '78%',
+    maxWidth: '72%',
     alignSelf: 'flex-start',
     paddingHorizontal: 14,
     paddingVertical: 11,
@@ -507,11 +556,11 @@ const styles = StyleSheet.create({
   input: { minHeight: 48, maxHeight: 110, color: '#111111', fontSize: 15, textAlignVertical: 'top' },
   composerBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   counter: { color: '#777771', fontSize: 11 },
-  sendButton: { minWidth: 70, minHeight: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111111' },
+  sendButton: { minWidth: 76, minHeight: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111111', overflow: 'hidden' },
   sendButtonText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   disabledButton: { opacity: 0.35 },
-  modalBackdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
-  modalSheet: { padding: 24, paddingBottom: 32, backgroundColor: '#F5F5F2', borderTopWidth: 1, borderTopColor: '#111111' },
+  modalBackdrop: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalSheet: { width: '100%', maxWidth: 840, padding: 24, paddingBottom: 32, backgroundColor: '#F5F5F2', borderTopWidth: 1, borderTopColor: '#111111' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modalTitle: { color: '#111111', fontSize: 26, fontWeight: '800', letterSpacing: -0.8 },
   modalClose: { color: '#555550', fontSize: 13, textDecorationLine: 'underline', padding: 8 },

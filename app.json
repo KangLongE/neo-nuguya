@@ -3,7 +3,7 @@
     "name": "neo nuguya",
     "slug": "neo-nuguya",
     "version": "0.1.0",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android", "web"],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -13,6 +13,9 @@
     },
     "android": {
       "package": "com.kanglonge.neonuguya"
+    },
+    "web": {
+      "bundler": "metro"
     }
   }
 }

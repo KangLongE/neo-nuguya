@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
 const { createServer } = require('node:http');
 const { WebSocket, WebSocketServer } = require('ws');
 
@@ -8,6 +10,27 @@ const PORT = Number(process.env.PORT) || 3000;
 const MAX_MESSAGE_LENGTH = 250;
 const COOLDOWN_MS = 1_500;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1_000;
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+const CORS_HEADERS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
+  'access-control-allow-headers': 'Content-Type, Authorization',
+};
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
+};
 const topics = new Set(['잡담', '게임', '개발', '학교', '고민', '취미', '음악', '아무거나']);
 const reportReasons = new Set(['부적절한 대화', '개인정보 요구', '괴롭힘', '스팸', '기타']);
 
@@ -66,9 +89,6 @@ function checkMessage(value, previous = '') {
   ].find(([pattern]) => pattern.test(text));
 
   if (blocked) return { code: blocked[1], message: blocked[2] };
-  if (previous && previous.localeCompare(text, undefined, { sensitivity: 'accent' }) === 0) {
-    return { code: 'spam', message: '같은 메시지를 연속으로 보낼 수 없습니다.' };
-  }
   return { text };
 }
 
@@ -183,25 +203,70 @@ function createClient(ws, req) {
   return { ws, id, topic: null, peer: null, history: [], lastSentAt: 0, lastMessage: '', sentAt: [] };
 }
 
+function serveStatic(req, res, pathname) {
+  let relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  const filePath = path.normalize(path.join(PUBLIC_DIR, relativePath));
+
+  if (!filePath.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403, { ...CORS_HEADERS, 'content-type': 'text/plain; charset=utf-8' });
+    return res.end('Forbidden');
+  }
+
+  fs.stat(filePath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      res.writeHead(404, { ...CORS_HEADERS, 'content-type': 'text/plain; charset=utf-8' });
+      return res.end('Not found');
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    res.writeHead(200, {
+      ...CORS_HEADERS,
+      'content-type': contentType,
+      'content-length': stats.size,
+    });
+    fs.createReadStream(filePath).pipe(res);
+  });
+}
+
 function handleHttp(req, res) {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, CORS_HEADERS);
+    return res.end();
+  }
+
   const pathname = new URL(req.url, 'http://localhost').pathname;
+
   if (req.method === 'GET' && pathname === '/health') {
-    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+    res.writeHead(200, {
+      ...CORS_HEADERS,
+      'content-type': 'application/json; charset=utf-8',
+    });
     return res.end(JSON.stringify({ ok: true }));
   }
+
   if (req.method === 'POST' && pathname === '/session') {
     res.writeHead(201, {
+      ...CORS_HEADERS,
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
     });
     return res.end(JSON.stringify({ token: issueToken(), expiresIn: SESSION_TTL_MS }));
   }
-  res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+
+  if (req.method === 'GET') {
+    return serveStatic(req, res, pathname);
+  }
+
+  res.writeHead(404, {
+    ...CORS_HEADERS,
+    'content-type': 'text/plain; charset=utf-8',
+  });
   res.end('Not found');
 }
 
-function startServer(port = PORT) {
+function createAppServer() {
   const server = createServer(handleHttp);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4_096 });
 
@@ -243,9 +308,18 @@ function startServer(port = PORT) {
   }, 60_000);
   timer.unref();
 
+  return server;
+}
+
+function startServer(port = PORT) {
+  const server = createAppServer();
   return server.listen(port, () => console.log(`neo nuguya: http://localhost:${server.address().port}`));
 }
 
 if (require.main === module) startServer();
 
-module.exports = { checkMessage, safetyStatus, startServer };
+const appServer = createAppServer();
+appServer.checkMessage = checkMessage;
+appServer.safetyStatus = safetyStatus;
+appServer.startServer = startServer;
+module.exports = appServer;
