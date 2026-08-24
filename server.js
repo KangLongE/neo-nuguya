@@ -266,7 +266,7 @@ function handleHttp(req, res) {
   res.end('Not found');
 }
 
-function startServer(port = PORT) {
+function createAppServer() {
   const server = createServer(handleHttp);
   const wss = new WebSocketServer({ noServer: true, maxPayload: 4_096 });
 
@@ -308,9 +308,18 @@ function startServer(port = PORT) {
   }, 60_000);
   timer.unref();
 
+  return server;
+}
+
+function startServer(port = PORT) {
+  const server = createAppServer();
   return server.listen(port, () => console.log(`neo nuguya: http://localhost:${server.address().port}`));
 }
 
 if (require.main === module) startServer();
 
-module.exports = { checkMessage, safetyStatus, startServer };
+const appServer = createAppServer();
+appServer.checkMessage = checkMessage;
+appServer.safetyStatus = safetyStatus;
+appServer.startServer = startServer;
+module.exports = appServer;

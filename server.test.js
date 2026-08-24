@@ -4,8 +4,13 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { once } = require('node:events');
 const { WebSocket } = require('ws');
-const { checkMessage, safetyStatus } = require('./server');
-const { startServer } = require('./server');
+const appServer = require('./server');
+const { checkMessage, safetyStatus, startServer } = appServer;
+
+test('Vercel이 호출할 HTTP 서버를 기본으로 내보낸다', () => {
+  assert.equal(typeof appServer.listen, 'function');
+  assert.equal(typeof appServer.emit, 'function');
+});
 
 test('메시지 안전 규칙과 상태 단계를 지킨다', () => {
   assert.equal(checkMessage('안녕하세요').text, '안녕하세요');
