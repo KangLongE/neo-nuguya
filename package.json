@@ -8,6 +8,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web",
     "server": "node server.js",
     "test": "node --test",
     "verify:native": "expo export --platform all --output-dir dist"
@@ -16,9 +18,12 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~6.1.2",
     "expo": "~54.0.0",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
+    "react-native-web": "^0.21.0",
     "ws": "^8.18.3"
   }
 }
