@@ -1,24 +1,15 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { createReadStream } = require('node:fs');
 const { createServer } = require('node:http');
-const path = require('node:path');
 const { WebSocket, WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT) || 3000;
-const PUBLIC_DIR = path.join(__dirname, 'public');
 const MAX_MESSAGE_LENGTH = 250;
 const COOLDOWN_MS = 1_500;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1_000;
 const topics = new Set(['잡담', '게임', '개발', '학교', '고민', '취미', '음악', '아무거나']);
 const reportReasons = new Set(['부적절한 대화', '개인정보 요구', '괴롭힘', '스팸', '기타']);
-const files = new Map([
-  ['/', ['index.html', 'text/html; charset=utf-8']],
-  ['/index.html', ['index.html', 'text/html; charset=utf-8']],
-  ['/styles.css', ['styles.css', 'text/css; charset=utf-8']],
-  ['/app.js', ['app.js', 'text/javascript; charset=utf-8']],
-]);
 
 const secret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 // ponytail: single-process TTL state; use Redis when running more than one server instance.
@@ -35,19 +26,13 @@ function issueToken() {
   return `${id}.${sign(id)}`;
 }
 
-function verifyToken(token = '') {
+function verifyToken(token) {
+  if (typeof token !== 'string') return null;
   const [id, signature] = token.split('.');
   if (!/^[0-9a-f-]{36}$/.test(id || '') || !signature) return null;
   const expected = Buffer.from(sign(id));
   const supplied = Buffer.from(signature);
   return expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied) ? id : null;
-}
-
-function cookie(req, name) {
-  return (req.headers.cookie || '')
-    .split(';')
-    .map((part) => part.trim().split('='))
-    .find(([key]) => key === name)?.[1];
 }
 
 function safetyStatus(score) {
@@ -191,40 +176,29 @@ function handleReport(client, reason) {
 }
 
 function createClient(ws, req) {
-  const id = verifyToken(cookie(req, 'neo_session'));
+  const token = new URL(req.url, 'http://localhost').searchParams.get('token');
+  const id = verifyToken(token);
   if (!id) return null;
   safetyFor(id);
   return { ws, id, topic: null, peer: null, history: [], lastSentAt: 0, lastMessage: '', sentAt: [] };
 }
 
 function handleHttp(req, res) {
-  if (req.url === '/health') {
+  const pathname = new URL(req.url, 'http://localhost').pathname;
+  if (req.method === 'GET' && pathname === '/health') {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({ ok: true }));
   }
-
-  const pathname = new URL(req.url, 'http://localhost').pathname;
-  const asset = files.get(pathname);
-  if (!asset) {
-    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
-    return res.end('Not found');
+  if (req.method === 'POST' && pathname === '/session') {
+    res.writeHead(201, {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+    });
+    return res.end(JSON.stringify({ token: issueToken(), expiresIn: SESSION_TTL_MS }));
   }
-
-  let token = cookie(req, 'neo_session');
-  if (!verifyToken(token)) token = issueToken();
-  const secure = req.socket.encrypted || req.headers['x-forwarded-proto'] === 'https';
-  res.setHeader('set-cookie', `neo_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400${secure ? '; Secure' : ''}`);
-  res.setHeader('content-type', asset[1]);
-  res.setHeader('cache-control', pathname === '/' ? 'no-cache' : 'public, max-age=300');
-  res.setHeader('content-security-policy', "default-src 'self'; connect-src 'self' ws: wss:; style-src 'self'; script-src 'self'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'");
-  res.setHeader('x-content-type-options', 'nosniff');
-  res.setHeader('referrer-policy', 'no-referrer');
-  createReadStream(path.join(PUBLIC_DIR, asset[0]))
-    .on('error', () => {
-      if (!res.headersSent) res.writeHead(500);
-      res.end('Server error');
-    })
-    .pipe(res);
+  res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+  res.end('Not found');
 }
 
 function startServer(port = PORT) {
@@ -233,9 +207,7 @@ function startServer(port = PORT) {
 
   server.on('upgrade', (req, socket, head) => {
     const pathname = new URL(req.url, 'http://localhost').pathname;
-    const protocol = req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-    const expectedOrigin = `${protocol}://${req.headers.host}`;
-    if (pathname !== '/socket' || (req.headers.origin && req.headers.origin !== expectedOrigin)) return socket.destroy();
+    if (pathname !== '/socket') return socket.destroy();
     wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
   });
 

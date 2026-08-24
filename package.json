@@ -3,16 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "description": "주제 기반 완전 익명 1:1 랜덤 텍스트 채팅",
-  "main": "server.js",
+  "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
-    "test": "node --test"
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "server": "node server.js",
+    "test": "node --test",
+    "verify:native": "expo export --platform all --output-dir dist"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "expo": "~54.0.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
     "ws": "^8.18.3"
   }
 }

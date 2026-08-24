@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "neo nuguya",
+    "slug": "neo-nuguya",
+    "version": "0.1.0",
+    "platforms": ["ios", "android"],
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kanglonge.neonuguya"
+    },
+    "android": {
+      "package": "com.kanglonge.neonuguya"
+    }
+  }
+}

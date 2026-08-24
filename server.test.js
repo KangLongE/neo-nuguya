@@ -38,10 +38,14 @@ test('두 익명 사용자를 매칭하고 메시지를 전달한다', async (co
   const { port } = server.address();
   const origin = `http://127.0.0.1:${port}`;
 
-  const session = async () => (await fetch(origin)).headers.get('set-cookie').split(';')[0];
-  const [cookieA, cookieB] = await Promise.all([session(), session()]);
-  const socketA = new WebSocket(`ws://127.0.0.1:${port}/socket`, { headers: { Cookie: cookieA, Origin: origin } });
-  const socketB = new WebSocket(`ws://127.0.0.1:${port}/socket`, { headers: { Cookie: cookieB, Origin: origin } });
+  const unauthorized = new WebSocket(`ws://127.0.0.1:${port}/socket`);
+  const [closeCode] = await once(unauthorized, 'close');
+  assert.equal(closeCode, 1008);
+
+  const session = async () => (await (await fetch(`${origin}/session`, { method: 'POST' })).json()).token;
+  const [tokenA, tokenB] = await Promise.all([session(), session()]);
+  const socketA = new WebSocket(`ws://127.0.0.1:${port}/socket?token=${encodeURIComponent(tokenA)}`);
+  const socketB = new WebSocket(`ws://127.0.0.1:${port}/socket?token=${encodeURIComponent(tokenB)}`);
 
   context.after(async () => {
     socketA.close();
